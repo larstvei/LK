@@ -49,3 +49,8 @@ buildTree sequent = case rule sequent of
                       Just (BetaRule seq1 seq2) ->
                           Beta sequent (buildTree seq1) (buildTree seq2)
                       Nothing -> Leaf sequent
+
+leaves :: DeductionTree -> [Sequent]
+leaves (Leaf sequent) = [sequent]
+leaves (Alpha _ tree) = leaves tree
+leaves (Beta _ tree1 tree2) = leaves tree1 ++ leaves tree2
