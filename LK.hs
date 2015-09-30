@@ -46,6 +46,7 @@ data DeductionTree = Leaf Sequent
                    | Beta Sequent DeductionTree DeductionTree
                      deriving Show
 
+buildTree :: Sequent -> DeductionTree
 buildTree sequent = case applyRule sequent of
                       Just (AlphaRule seq) ->
                           Alpha sequent (buildTree seq)
