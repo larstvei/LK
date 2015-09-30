@@ -1,0 +1,24 @@
+* An implementation of the system LK
+
+  LK is a [[https://en.wikipedia.org/wiki/Sequent_calculus#The_system_LK][sequent calculus]], used in order to automate proofs. Given a logic
+  formula (so far only prepositional formulas are implemented), the system
+  should be able to deduce whether or not the formula is valid. It relies on
+  the idea that if there is no way to falsify the formula, then it must always
+  hold true, meaning it's valid.
+
+  The project has no practical purpose. It is a means to learn more about proof
+  systems, Haskell and in particular it's type system.
+
+** A side note
+
+    The code may look clunky, but when used with the wonderful
+    [[http://emacsredux.com/blog/2014/08/25/a-peek-at-emacs-24-dot-4-prettify-symbols-mode/][prettify-symbols-mode]] in Emacs it looks a lot better. The following symbols
+    have been added to the `prettify-symbols-alist`.
+
+    #+BEGIN_SRC emacs-lisp
+    (setq-default prettify-symbols-alist '(("lambda" . ?λ)
+                                           ("delta" . ?Δ)
+                                           ("gamma" . ?Γ)
+                                           ("phi" . ?φ)
+                                           ("psi" . ?ψ)))
+    #+END_SRC
