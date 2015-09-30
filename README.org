@@ -12,8 +12,8 @@
 ** A side note
 
     The code may look clunky, but when used with the wonderful
-    [[http://emacsredux.com/blog/2014/08/25/a-peek-at-emacs-24-dot-4-prettify-symbols-mode/][prettify-symbols-mode]] in Emacs it looks a lot better. The following symbols
-    have been added to the `prettify-symbols-alist`.
+    [[http://emacsredux.com/blog/2014/08/25/a-peek-at-emacs-24-dot-4-prettify-symbols-mode/][prettify-symbols-mode]] in Emacs it looks a lot better. The
+    =prettify-symbols-alist= have been configured in the following way:
 
     #+BEGIN_SRC emacs-lisp
     (setq-default prettify-symbols-alist '(("lambda" . ?λ)
