@@ -37,7 +37,8 @@ applyRule (gamma, delta)
     | otherwise = Nothing
     where (atoms,  nonAtoms)  = partition isAtomic gamma
           (atoms', nonAtoms') = partition isAtomic delta
-          addAtoms (AlphaRule (gamma, delta)) = AlphaRule (gamma++atoms, delta++atoms')
+          addAtoms (AlphaRule (gamma, delta)) =
+              AlphaRule (gamma++atoms, delta++atoms')
           addAtoms (BetaRule (gamma, delta) (gamma', delta')) =
               BetaRule (gamma++atoms, delta++atoms') (gamma'++atoms, delta'++atoms')
 
