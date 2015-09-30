@@ -23,16 +23,19 @@ isAxiom (antecedents, succedents) = filter isAtomic formulas /= []
     where formulas = intersect antecedents succedents
 
 rule :: Sequent -> Maybe Rule
-
-rule (gamma, ((Not phi):delta)) = Just $ AlphaRule ((phi:gamma), delta)
-rule (((Not phi):gamma), delta) = Just $ AlphaRule (gamma, (phi:delta))
-
-rule (gamma, ((Or phi psi):delta)) = Just $ AlphaRule (gamma, (phi:psi:delta))
-rule (((Or phi psi):gamma), delta) = Just $ BetaRule  ((phi:gamma), delta) ((psi:gamma), delta)
-
-rule (gamma, ((And phi psi):delta)) = Just $ BetaRule  (gamma, (phi:delta)) (gamma, (psi:delta))
-rule (((And phi psi):gamma), delta) = Just $ AlphaRule ((phi:psi:gamma), delta)
-
-rule (gamma, ((Implies phi psi):delta)) = Just $ AlphaRule ((phi:gamma), (psi:delta))
-rule (((Implies phi psi):gamma), delta) = Just $ BetaRule  (gamma, (phi:delta)) ((psi:gamma), delta)
-
+rule (gamma, delta)
+    | (not . null) phi =
+        Just $ case phi of
+                 (Not phi:gamma)       -> AlphaRule (gamma, (phi:delta))
+                 (Or phi psi:gamma)      -> BetaRule  ((phi:gamma), delta) ((psi:gamma), delta)
+                 (And phi psi:gamma)     -> AlphaRule ((phi:psi:gamma), delta)
+                 (Implies phi psi:gamma) -> BetaRule  (gamma, (phi:delta)) ((psi:gamma), delta)
+    | (not . null) psi =
+        Just $ case psi of
+                 (Not phi:delta)       -> AlphaRule ((phi:gamma), delta)
+                 (Or phi psi:delta)      -> AlphaRule (gamma, (phi:psi:delta))
+                 (And phi psi:delta)     -> BetaRule  (gamma, (phi:delta)) (gamma, (psi:delta))
+                 (Implies phi psi:delta) -> AlphaRule ((phi:gamma), (psi:delta))
+    | otherwise = Nothing
+    where phi = filter (not . isAtomic) gamma
+          psi = filter (not . isAtomic) delta
