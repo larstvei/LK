@@ -37,3 +37,8 @@ rule (gamma, delta)
     | otherwise = Nothing
     where phi = filter (not . isAtomic) gamma
           psi = filter (not . isAtomic) delta
+
+data DeductionTree = Leaf Sequent
+                   | Alpha Sequent DeductionTree
+                   | Beta Sequent DeductionTree DeductionTree
+                     deriving Show
