@@ -1,4 +1,4 @@
-import Data.List (intersect)
+import Data.List (intersect, partition)
 
 data Formula = Var     Char
              | Not     Formula
@@ -20,30 +20,33 @@ isAxiom :: Sequent -> Bool
 isAxiom (antecedents, succedents) = filter isAtomic formulas /= []
     where formulas = intersect antecedents succedents
 
-rule :: Sequent -> Maybe Rule
-rule (gamma, delta)
-    | (not . null) phi =
-        Just $ case phi of
+applyRule :: Sequent -> Maybe Rule
+applyRule (gamma, delta)
+    | (not . null) nonAtoms =
+        Just $ addAtoms $ case nonAtoms of
                  (Not phi:gamma)       -> AlphaRule (gamma, (phi:delta))
                  (Or phi psi:gamma)      -> BetaRule  ((phi:gamma), delta) ((psi:gamma), delta)
                  (And phi psi:gamma)     -> AlphaRule ((phi:psi:gamma), delta)
                  (Implies phi psi:gamma) -> BetaRule  (gamma, (phi:delta)) ((psi:gamma), delta)
-    | (not . null) psi =
-        Just $ case psi of
+    | (not . null) nonAtoms' =
+        Just $ addAtoms $ case nonAtoms' of
                  (Not phi:delta)       -> AlphaRule ((phi:gamma), delta)
                  (Or phi psi:delta)      -> AlphaRule (gamma, (phi:psi:delta))
                  (And phi psi:delta)     -> BetaRule  (gamma, (phi:delta)) (gamma, (psi:delta))
                  (Implies phi psi:delta) -> AlphaRule ((phi:gamma), (psi:delta))
     | otherwise = Nothing
-    where phi = filter (not . isAtomic) gamma
-          psi = filter (not . isAtomic) delta
+    where (atoms,  nonAtoms)  = partition isAtomic gamma
+          (atoms', nonAtoms') = partition isAtomic delta
+          addAtoms (AlphaRule (gamma, delta)) = AlphaRule (gamma++atoms, delta++atoms')
+          addAtoms (BetaRule (gamma, delta) (gamma', delta')) =
+              BetaRule (gamma++atoms, delta++atoms') (gamma'++atoms, delta'++atoms')
 
 data DeductionTree = Leaf Sequent
                    | Alpha Sequent DeductionTree
                    | Beta Sequent DeductionTree DeductionTree
                      deriving Show
 
-buildTree sequent = case rule sequent of
+buildTree sequent = case applyRule sequent of
                       Just (AlphaRule seq) ->
                           Alpha sequent (buildTree seq)
                       Just (BetaRule seq1 seq2) ->
