@@ -59,5 +59,8 @@ leaves (Leaf sequent) = [sequent]
 leaves (Alpha _ tree) = leaves tree
 leaves (Beta _ tree1 tree2) = leaves tree1 ++ leaves tree2
 
+isValidSequent :: Sequent -> Bool
+isValidSequent seq = all isAxiom $ leaves $ buildTree seq
+
 isValid :: Formula -> Bool
-isValid phi = all isAxiom $ leaves $ buildTree ([], [phi])
+isValid phi = isValidSequent ([], [phi])
