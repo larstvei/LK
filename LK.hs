@@ -17,8 +17,8 @@ isAtomic (Var p) = True
 isAtomic _       = False
 
 isAxiom :: Sequent -> Bool
-isAxiom (antecedents, succedents) = filter isAtomic formulas /= []
-    where formulas = intersect antecedents succedents
+isAxiom (gamma, delta) = filter isAtomic formulas /= []
+    where formulas = intersect gamma delta
 
 applyRule :: Sequent -> Maybe Rule
 applyRule (gamma, delta)
