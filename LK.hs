@@ -4,15 +4,13 @@ data Formula = Var     Char
              | Not     Formula
              | Or      Formula Formula
              | And     Formula Formula
-             | Implies Formula Formula
-               deriving (Show, Eq)
+             | Implies Formula Formula deriving (Show, Eq)
 
 -- Using lists in favor of bags; should be OK as the order is ignored.
 type Sequent = ([Formula], [Formula])
 
 data Rule = AlphaRule Sequent
-          | BetaRule  Sequent Sequent
-            deriving Show
+          | BetaRule  Sequent Sequent deriving Show
 
 isAtomic :: Formula -> Bool
 isAtomic (Var p) = True
