@@ -108,6 +108,22 @@ showFormula phi = case phi of
                   (And     phi psi) -> paren $ showFormula phi ++ " \\land " ++ showFormula psi
                   (Implies phi psi) -> paren $ showFormula phi ++ " \\to " ++ showFormula psi
     where paren s = "(" ++ s ++ ")"
+
+readFormula :: String -> Formula
+readFormula xs = phi
+    where (phi, _) = readFormula' xs
+
+readFormula' :: String -> (Formula, String)
+readFormula' [x]    = ((Var x), [])
+readFormula' (x:xs) | member x "pqrst" = ((Var x), xs)
+                    | x == 'N' = ((Not     phi),   r)
+                    | x == 'O' = ((Or      phi psi), r')
+                    | x == 'A' = ((And     phi psi), r')
+                    | x == 'I' = ((Implies phi psi), r')
+    where (phi, r)   = readFormula' xs
+          (psi, r')  = readFormula' r
+          member x = (not . null . filter (==x))
+
 instance Show DeductionTree where
     show = showTree
 
