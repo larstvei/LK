@@ -48,7 +48,6 @@ applyRule (gamma, delta)
 data DeductionTree = Leaf Sequent
                    | Alpha Sequent DeductionTree
                    | Beta Sequent DeductionTree DeductionTree
-                     deriving Show
 
 buildTree :: Sequent -> DeductionTree
 buildTree sequent = case applyRule sequent of
@@ -88,3 +87,22 @@ showFormula phi = case phi of
                   (And     phi psi) -> paren $ showFormula phi ++ " \\land " ++ showFormula psi
                   (Implies phi psi) -> paren $ showFormula phi ++ " \\to " ++ showFormula psi
     where paren s = "(" ++ s ++ ")"
+instance Show DeductionTree where
+    show = showTree
+
+showTree :: DeductionTree -> String
+showTree node = wrapProoftree $ reverseLines $ showTree' node
+    where showTree' node =
+              case node of
+                (Leaf (gamma,delta)) ->
+                    [ax $ showSequent (gamma,delta)]
+                (Alpha (gamma,delta) tree) ->
+                    (un $ showSequent (gamma,delta)) : showTree' tree
+                (Beta  (gamma,delta) tree1 tree2) ->
+                    (bi $ showSequent (gamma,delta)) :
+                        (showTree' tree1 ++ showTree' tree2)
+          ax s = "\\AxiomC{$"     ++ s ++ "$}"
+          un s = "\\UnaryInfC{$"  ++ s ++ "$}"
+          bi s = "\\BinaryInfC{$" ++ s ++ "$}"
+          reverseLines    = unlines . reverse
+          wrapProoftree p = "\\begin{prooftree}\n" ++ p ++ "\\end{prooftree}"
