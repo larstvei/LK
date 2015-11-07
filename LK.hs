@@ -1,4 +1,6 @@
-import Data.List (intersect, partition)
+import Data.Ord  (comparing)
+import Data.Char (toUpper)
+import Data.List (delete, intercalate, intersect, minimumBy)
 
 data Formula = Var     Char
              | Not     Formula
