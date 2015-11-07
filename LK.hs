@@ -23,34 +23,55 @@ isAxiom :: Sequent -> Bool
 isAxiom (gamma, delta) = filter isAtomic formulas /= []
     where formulas = intersect gamma delta
 
-applyRule :: Sequent -> Maybe Rule
-applyRule (gamma, delta)
-    | (not . null) nonAtoms =
-        Just $ addAtoms $ case nonAtoms of
-                 (Not phi:gamma)       -> AlphaRule (gamma, (phi:delta))
-                 (Or phi psi:gamma)      -> BetaRule  ((phi:gamma), delta) ((psi:gamma), delta)
-                 (And phi psi:gamma)     -> AlphaRule ((phi:psi:gamma), delta)
-                 (Implies phi psi:gamma) -> BetaRule  (gamma, (phi:delta)) ((psi:gamma), delta)
-    | (not . null) nonAtoms' =
-        Just $ addAtoms $ case nonAtoms' of
-                 (Not phi:delta)       -> AlphaRule ((phi:gamma), delta)
-                 (Or phi psi:delta)      -> AlphaRule (gamma, (phi:psi:delta))
-                 (And phi psi:delta)     -> BetaRule  (gamma, (phi:delta)) (gamma, (psi:delta))
-                 (Implies phi psi:delta) -> AlphaRule ((phi:gamma), (psi:delta))
-    | otherwise = Nothing
-    where (atoms,  nonAtoms)  = partition isAtomic gamma
-          (atoms', nonAtoms') = partition isAtomic delta
-          addAtoms (AlphaRule (gamma, delta)) =
-              AlphaRule (gamma++atoms, delta++atoms')
-          addAtoms (BetaRule (gamma, delta) (gamma', delta')) =
-              BetaRule (gamma++atoms, delta++atoms') (gamma'++atoms, delta'++atoms')
+ordGamma :: Formula -> Integer
+ordGamma phi = case phi of
+               (Not       _) -> 0
+               (And     _ _) -> 0
+               (Or      _ _) -> 1
+               (Implies _ _) -> 1
+               (Var       _) -> 10
+
+ordDelta :: Formula -> Integer
+ordDelta phi = case phi of
+               (Not       _) -> 0
+               (Or      _ _) -> 0
+               (Implies _ _) -> 0
+               (And     _ _) -> 1
+               (Var       _) -> 10
+
+applyGammaRule :: Formula -> Sequent -> Maybe Rule
+applyGammaRule phi (gamma,delta) =
+    case phi of
+      Not phi       -> Just $ AlphaRule (gamma, (phi:delta))
+      And phi psi     -> Just $ AlphaRule ((phi:psi:gamma), delta)
+      Or phi psi      -> Just $ BetaRule  ((phi:gamma), delta) ((psi:gamma), delta)
+      Implies phi psi -> Just $ BetaRule  (gamma, (phi:delta)) ((psi:gamma), delta)
+      _           -> Nothing
+
+applyDeltaRule :: Formula -> Sequent -> Maybe Rule
+applyDeltaRule phi (gamma,delta) =
+    case phi of
+      Not phi       -> Just $ AlphaRule ((phi:gamma), delta)
+      Or phi psi      -> Just $ AlphaRule (gamma, (phi:psi:delta))
+      Implies phi psi -> Just $ AlphaRule ((phi:gamma), (psi:delta))
+      And phi psi     -> Just $ BetaRule  (gamma, (phi:delta)) (gamma, (psi:delta))
+      _           -> Nothing
+
+chooseRule :: Sequent -> Maybe Rule
+chooseRule (gamma, delta) | isAxiom (gamma,delta) = Nothing
+                  | s == "gamma"  = applyGammaRule phi (delete phi gamma, delta)
+                  | s == "delta"  = applyDeltaRule phi (gamma, delete phi delta)
+    where g            = zip3 (map ordGamma gamma) gamma (repeat "gamma")
+          d            = zip3 (map ordDelta delta) delta (repeat "delta")
+          (_, phi, s)    = minimumBy (comparing fst') (g++d)
+          fst' (a,_,_) = a
 
 data DeductionTree = Leaf Sequent
                    | Alpha Sequent DeductionTree
                    | Beta Sequent DeductionTree DeductionTree
 
 buildTree :: Sequent -> DeductionTree
-buildTree sequent = case applyRule sequent of
+buildTree sequent = case chooseRule sequent of
                       Just (AlphaRule seq) ->
                           Alpha sequent (buildTree seq)
                       Just (BetaRule seq1 seq2) ->
