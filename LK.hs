@@ -6,7 +6,8 @@ data Formula = Var     Char
              | Not     Formula
              | Or      Formula Formula
              | And     Formula Formula
-             | Implies Formula Formula deriving (Show, Eq)
+             | Implies Formula Formula
+               deriving Eq
 
 -- Using lists in favor of bags; should be OK as the order is ignored.
 type Sequent = ([Formula], [Formula])
@@ -67,3 +68,23 @@ isValidSequent seq = all isAxiom $ leaves $ buildTree seq
 
 isValid :: Formula -> Bool
 isValid phi = isValidSequent ([], [phi])
+
+-- Show/Read functions
+
+showSequent :: Sequent -> String
+showSequent (gamma,delta) = sl gamma ++ vd ++ sl delta
+    where sl = intercalate ", " . map show
+          vd | isAxiom (gamma,delta) = " \\stackrel{\\times}{\\vdash} "
+             | otherwise = " \\vdash "
+
+instance Show Formula where
+    show = showFormula
+
+showFormula :: Formula -> String
+showFormula phi = case phi of
+                  (Var     p)   -> [toUpper p]
+                  (Not     phi)   -> "\\neg " ++ showFormula phi
+                  (Or      phi psi) -> paren $ showFormula phi ++ " \\lor " ++ showFormula psi
+                  (And     phi psi) -> paren $ showFormula phi ++ " \\land " ++ showFormula psi
+                  (Implies phi psi) -> paren $ showFormula phi ++ " \\to " ++ showFormula psi
+    where paren s = "(" ++ s ++ ")"
