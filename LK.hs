@@ -12,8 +12,10 @@ data Formula = Var     Char
 -- Using lists in favor of bags; should be OK as the order is ignored.
 type Sequent = ([Formula], [Formula])
 
-data Rule = AlphaRule Sequent
-          | BetaRule  Sequent Sequent deriving Show
+type Label = String
+
+data Rule = AlphaRule Sequent Label
+          | BetaRule  Sequent Sequent Label deriving Show
 
 isAtomic :: Formula -> Bool
 isAtomic (Var p) = True
@@ -42,19 +44,19 @@ ordDelta phi = case phi of
 applyGammaRule :: Formula -> Sequent -> Maybe Rule
 applyGammaRule phi (gamma,delta) =
     case phi of
-      Not phi       -> Just $ AlphaRule (gamma, (phi:delta))
-      And phi psi     -> Just $ AlphaRule ((phi:psi:gamma), delta)
-      Or phi psi      -> Just $ BetaRule  ((phi:gamma), delta) ((psi:gamma), delta)
-      Implies phi psi -> Just $ BetaRule  (gamma, (phi:delta)) ((psi:gamma), delta)
+      Not phi       -> Just $ AlphaRule (gamma, (phi:delta))            "L$\\neg$"
+      And phi psi     -> Just $ AlphaRule ((phi:psi:gamma), delta)          "L$\\land$"
+      Or phi psi      -> Just $ BetaRule  ((phi:gamma), delta) ((psi:gamma), delta) "L$\\lor$"
+      Implies phi psi -> Just $ BetaRule  (gamma, (phi:delta)) ((psi:gamma), delta) "L$\\to$"
       _           -> Nothing
 
 applyDeltaRule :: Formula -> Sequent -> Maybe Rule
 applyDeltaRule phi (gamma,delta) =
     case phi of
-      Not phi       -> Just $ AlphaRule ((phi:gamma), delta)
-      Or phi psi      -> Just $ AlphaRule (gamma, (phi:psi:delta))
-      Implies phi psi -> Just $ AlphaRule ((phi:gamma), (psi:delta))
-      And phi psi     -> Just $ BetaRule  (gamma, (phi:delta)) (gamma, (psi:delta))
+      Not phi       -> Just $ AlphaRule ((phi:gamma), delta)            "R$\\neg$"
+      Or phi psi      -> Just $ AlphaRule (gamma, (phi:psi:delta))          "R$\\lor$"
+      Implies phi psi -> Just $ AlphaRule ((phi:gamma), (psi:delta))        "R$\\to$"
+      And phi psi     -> Just $ BetaRule  (gamma, (phi:delta)) (gamma, (psi:delta)) "R$\\land$"
       _           -> Nothing
 
 chooseRule :: Sequent -> Maybe Rule
@@ -67,21 +69,21 @@ chooseRule (gamma, delta) | isAxiom (gamma,delta) = Nothing
           fst' (a,_,_) = a
 
 data DeductionTree = Leaf Sequent
-                   | Alpha Sequent DeductionTree
-                   | Beta Sequent DeductionTree DeductionTree
+                   | Alpha Sequent Label DeductionTree
+                   | Beta  Sequent Label DeductionTree DeductionTree
 
 buildTree :: Sequent -> DeductionTree
 buildTree sequent = case chooseRule sequent of
-                      Just (AlphaRule seq) ->
-                          Alpha sequent (buildTree seq)
-                      Just (BetaRule seq1 seq2) ->
-                          Beta sequent (buildTree seq1) (buildTree seq2)
+                      Just (AlphaRule seq label) ->
+                          Alpha sequent label (buildTree seq)
+                      Just (BetaRule seq1 seq2 label) ->
+                          Beta sequent label (buildTree seq1) (buildTree seq2)
                       Nothing -> Leaf sequent
 
 leaves :: DeductionTree -> [Sequent]
 leaves (Leaf sequent) = [sequent]
-leaves (Alpha _ tree) = leaves tree
-leaves (Beta _ tree1 tree2) = leaves tree1 ++ leaves tree2
+leaves (Alpha _  _ tree) = leaves tree
+leaves (Beta  _  _ tree1 tree2) = leaves tree1 ++ leaves tree2
 
 isValidSequent :: Sequent -> Bool
 isValidSequent seq = all isAxiom $ leaves $ buildTree seq
@@ -133,13 +135,14 @@ showTree node = wrapProoftree $ reverseLines $ showTree' node
               case node of
                 (Leaf (gamma,delta)) ->
                     [ax $ showSequent (gamma,delta)]
-                (Alpha (gamma,delta) tree) ->
-                    (un $ showSequent (gamma,delta)) : showTree' tree
-                (Beta  (gamma,delta) tree1 tree2) ->
-                    (bi $ showSequent (gamma,delta)) :
+                (Alpha (gamma,delta) l tree) ->
+                    (label l $ un $ showSequent (gamma,delta)) : showTree' tree
+                (Beta  (gamma,delta) l tree1 tree2) ->
+                    (label l $ bi $ showSequent (gamma,delta)) :
                         (showTree' tree1 ++ showTree' tree2)
           ax s = "\\AxiomC{$"     ++ s ++ "$}"
           un s = "\\UnaryInfC{$"  ++ s ++ "$}"
           bi s = "\\BinaryInfC{$" ++ s ++ "$}"
+          label l = ((++) $ "\\RightLabel{\\scriptsize{" ++ l ++ "}}\n")
           reverseLines    = unlines . reverse
           wrapProoftree p = "\\begin{prooftree}\n" ++ p ++ "\\end{prooftree}"
