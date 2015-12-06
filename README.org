@@ -51,7 +51,7 @@
 
   The rendered output looks like this:
 
-  [[file:example.pdf]]
+  [[./example.pdf]]
 
 ** A side note
 
