@@ -6,8 +6,52 @@
   the idea that if there is no way to falsify the formula, then it must always
   hold true, meaning it's valid.
 
-  The project has no practical purpose. It is a means to learn more about proof
-  systems, Haskell and in particular it's type system.
+  The project is a means to learn more about proof systems, Haskell and in
+  particular it's type system.
+
+  The program has a useful feature, namely that it outputs a derivation tree in
+  LaTeX markup for a given sequent.
+
+  Compile the program:
+
+  #+BEGIN_EXAMPLE
+  [larstvei LK/] λ ghc LK.hs
+  #+END_EXAMPLE
+
+  The program reads two lines of input, where each line may contain space
+  separated WFFs.
+
+  Definition WFF (well formed formula):
+    - p, q, r, s, t ∈ WFF
+    - if w ∈ WFF then Nw ∈ WFF
+    - if w, x ∈ WFF then Owx, Awx, Iwx ∈ WFF
+
+  Example run:
+
+  #+BEGIN_EXAMPLE
+  [larstvei LK/] λ ./LK
+  Enter Γ:
+  Opq Np
+  Enter Δ:
+  q
+  #+END_EXAMPLE
+
+  Output:
+
+  #+BEGIN_EXAMPLE
+  \begin{prooftree}
+  \AxiomC{$Q \stackrel{\times}{\vdash} P, Q$}
+  \AxiomC{$P \stackrel{\times}{\vdash} P, Q$}
+  \RightLabel{\scriptsize{L$\lor$}}
+  \BinaryInfC{$(P \lor Q) \vdash P, Q$}
+  \RightLabel{\scriptsize{L$\neg$}}
+  \UnaryInfC{$(P \lor Q), \neg P \vdash Q$}
+  \end{prooftree}
+  #+END_EXAMPLE
+
+  The rendered output looks like this:
+
+  [[file:example.pdf]]
 
 ** A side note
 
