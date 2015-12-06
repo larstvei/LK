@@ -111,20 +111,22 @@ showFormula phi = case phi of
                   (Implies phi psi) -> paren $ showFormula phi ++ " \\to " ++ showFormula psi
     where paren s = "(" ++ s ++ ")"
 
-readFormula :: String -> Formula
-readFormula xs = phi
-    where (phi, _) = readFormula' xs
+readFormula :: String -> Maybe Formula
+readFormula xs = case readFormula' xs of
+                   Just (phi, _) -> Just phi
+                   Nothing -> Nothing
 
-readFormula' :: String -> (Formula, String)
-readFormula' [x]    = ((Var x), [])
-readFormula' (x:xs) | member x "pqrst" = ((Var x), xs)
-                    | x == 'N' = ((Not     phi),   r)
-                    | x == 'O' = ((Or      phi psi), r')
-                    | x == 'A' = ((And     phi psi), r')
-                    | x == 'I' = ((Implies phi psi), r')
-    where (phi, r)   = readFormula' xs
-          (psi, r')  = readFormula' r
-          member x = (not . null . filter (==x))
+readFormula' :: String -> Maybe (Formula, String)
+readFormula' [x]    = Just ((Var x), [])
+readFormula' (x:xs) | member x "pqrst" = Just ((Var x), xs)
+                    | x == 'N' = Just ((Not     phi),   r)
+                    | x == 'O' = Just ((Or      phi psi), r')
+                    | x == 'A' = Just ((And     phi psi), r')
+                    | x == 'I' = Just ((Implies phi psi), r')
+                    | otherwise = Nothing
+    where Just (phi, r)  = readFormula' xs
+          Just (psi, r') = readFormula' r
+          member x     = (not . null . filter (==x))
 
 instance Show DerivationTree where
     show = showTree
