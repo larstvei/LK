@@ -68,11 +68,11 @@ chooseRule (gamma, delta) | isAxiom (gamma,delta) = Nothing
           (_, phi, s)    = minimumBy (comparing fst') (g++d)
           fst' (a,_,_) = a
 
-data DeductionTree = Leaf Sequent
-                   | Alpha Sequent Label DeductionTree
-                   | Beta  Sequent Label DeductionTree DeductionTree
+data DerivationTree = Leaf Sequent
+                   | Alpha Sequent Label DerivationTree
+                   | Beta  Sequent Label DerivationTree DerivationTree
 
-buildTree :: Sequent -> DeductionTree
+buildTree :: Sequent -> DerivationTree
 buildTree sequent = case chooseRule sequent of
                       Just (AlphaRule seq label) ->
                           Alpha sequent label (buildTree seq)
@@ -80,7 +80,7 @@ buildTree sequent = case chooseRule sequent of
                           Beta sequent label (buildTree seq1) (buildTree seq2)
                       Nothing -> Leaf sequent
 
-leaves :: DeductionTree -> [Sequent]
+leaves :: DerivationTree -> [Sequent]
 leaves (Leaf sequent) = [sequent]
 leaves (Alpha _  _ tree) = leaves tree
 leaves (Beta  _  _ tree1 tree2) = leaves tree1 ++ leaves tree2
@@ -126,10 +126,10 @@ readFormula' (x:xs) | member x "pqrst" = ((Var x), xs)
           (psi, r')  = readFormula' r
           member x = (not . null . filter (==x))
 
-instance Show DeductionTree where
+instance Show DerivationTree where
     show = showTree
 
-showTree :: DeductionTree -> String
+showTree :: DerivationTree -> String
 showTree node = wrapProoftree $ reverseLines $ showTree' node
     where showTree' node =
               case node of
