@@ -1,3 +1,5 @@
+import System.Environment (getArgs)
+import Data.Maybe (mapMaybe)
 import Data.Ord  (comparing)
 import Data.Char (toUpper)
 import Data.List (delete, intercalate, intersect, minimumBy)
@@ -148,3 +150,29 @@ showTree node = wrapProoftree $ reverseLines $ showTree' node
           label l = ((++) $ "\\RightLabel{\\scriptsize{" ++ l ++ "}}\n")
           reverseLines    = unlines . reverse
           wrapProoftree p = "\\begin{prooftree}\n" ++ p ++ "\\end{prooftree}"
+
+main = do
+  args <- getArgs
+  case args of
+    [] -> do putStrLn "Enter Γ:"
+             gamma <- fmap interpret getLine
+             putStrLn "Enter Δ:"
+             delta <- fmap interpret getLine
+             print $ buildTree (gamma,delta)
+    _  -> putStr help
+    where interpret = mapMaybe readFormula . words
+          help = unlines ["LK — reads a sequent from stdin and generates a LK derivation.",
+                          "The derivation is outputed in LaTeX markup.",
+                          "",
+                          "Input should consist of two lines: a Γ and a Δ.",
+                          "Γ and Δ are space separated WFFs.",
+                          "",
+                          "Definition WFF (well formed formula):",
+                          "  p, q, r, s, t ∈ WFF",
+                          "  if w ∈ WFF then Nw ∈ WFF",
+                          "  if w, x ∈ WFF then Owx, Awx, Iwx ∈ WFF",
+                          "",
+                          "Example:",
+                          "The sequent P ∨ Q, ¬P ⊢ Q should be entered as",
+                          "  Opq Np",
+                          "  q"]
