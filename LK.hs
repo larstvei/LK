@@ -1,8 +1,8 @@
-import System.Environment (getArgs)
-import Data.Maybe (mapMaybe)
-import Data.Ord  (comparing)
-import Data.Char (toUpper)
-import Data.List (delete, intercalate, intersect, minimumBy)
+import           Data.Char          (toUpper)
+import           Data.List          (delete, intercalate, intersect, minimumBy)
+import           Data.Maybe         (mapMaybe)
+import           Data.Ord           (comparing)
+import           System.Environment (getArgs)
 
 data Formula = Var     Char
              | Not     Formula
@@ -20,12 +20,12 @@ data Rule = AlphaRule Sequent Label
           | BetaRule  Sequent Sequent Label deriving Show
 
 isAtomic :: Formula -> Bool
-isAtomic (Var p) = True
+isAtomic (Var _) = True
 isAtomic _       = False
 
 isAxiom :: Sequent -> Bool
-isAxiom (gamma, delta) = filter isAtomic formulas /= []
-    where formulas = intersect gamma delta
+isAxiom (gamma, delta) = any isAtomic formulas
+    where formulas = gamma `intersect` delta
 
 ordGamma :: Formula -> Integer
 ordGamma phi = case phi of
@@ -46,19 +46,19 @@ ordDelta phi = case phi of
 applyGammaRule :: Formula -> Sequent -> Maybe Rule
 applyGammaRule phi (gamma,delta) =
     case phi of
-      Not phi       -> Just $ AlphaRule (gamma, (phi:delta))            "L$\\neg$"
-      And phi psi     -> Just $ AlphaRule ((phi:psi:gamma), delta)          "L$\\land$"
-      Or phi psi      -> Just $ BetaRule  ((phi:gamma), delta) ((psi:gamma), delta) "L$\\lor$"
-      Implies phi psi -> Just $ BetaRule  (gamma, (phi:delta)) ((psi:gamma), delta) "L$\\to$"
+      Not phi       -> Just $ AlphaRule (gamma, phi:delta)            "L$\\neg$"
+      And phi psi     -> Just $ AlphaRule (phi:psi:gamma, delta)          "L$\\land$"
+      Or phi psi      -> Just $ BetaRule  (phi:gamma, delta) (psi:gamma, delta) "L$\\lor$"
+      Implies phi psi -> Just $ BetaRule  (gamma, phi : delta) (psi : gamma, delta) "L$\\to$"
       _           -> Nothing
 
 applyDeltaRule :: Formula -> Sequent -> Maybe Rule
 applyDeltaRule phi (gamma,delta) =
     case phi of
-      Not phi       -> Just $ AlphaRule ((phi:gamma), delta)            "R$\\neg$"
-      Or phi psi      -> Just $ AlphaRule (gamma, (phi:psi:delta))          "R$\\lor$"
-      Implies phi psi -> Just $ AlphaRule ((phi:gamma), (psi:delta))        "R$\\to$"
-      And phi psi     -> Just $ BetaRule  (gamma, (phi:delta)) (gamma, (psi:delta)) "R$\\land$"
+      Not phi       -> Just $ AlphaRule (phi : gamma, delta)            "R$\\neg$"
+      Or phi psi      -> Just $ AlphaRule (gamma, phi : psi : delta)          "R$\\lor$"
+      Implies phi psi -> Just $ AlphaRule (phi : gamma, psi : delta)        "R$\\to$"
+      And phi psi     -> Just $ BetaRule  (gamma, phi : delta) (gamma, psi : delta) "R$\\land$"
       _           -> Nothing
 
 chooseRule :: Sequent -> Maybe Rule
@@ -82,13 +82,14 @@ buildTree sequent = case chooseRule sequent of
                           Beta sequent label (buildTree seq1) (buildTree seq2)
                       Nothing -> Leaf sequent
 
+
 leaves :: DerivationTree -> [Sequent]
-leaves (Leaf sequent) = [sequent]
-leaves (Alpha _  _ tree) = leaves tree
+leaves (Leaf sequent)           = [sequent]
+leaves (Alpha _  _ tree)        = leaves tree
 leaves (Beta  _  _ tree1 tree2) = leaves tree1 ++ leaves tree2
 
 isValidSequent :: Sequent -> Bool
-isValidSequent seq = all isAxiom $ leaves $ buildTree seq
+isValidSequent = all isAxiom . leaves . buildTree
 
 isValid :: Formula -> Bool
 isValid phi = isValidSequent ([], [phi])
@@ -113,44 +114,44 @@ showFormula phi = case phi of
                   (Implies phi psi) -> paren $ showFormula phi ++ " \\to " ++ showFormula psi
     where paren s = "(" ++ s ++ ")"
 
+
 readFormula :: String -> Maybe Formula
-readFormula xs = case readFormula' xs of
-                   Just (phi, _) -> Just phi
-                   Nothing -> Nothing
+readFormula = fmap fst . readFormula'
 
 readFormula' :: String -> Maybe (Formula, String)
-readFormula' [x]    = Just ((Var x), [])
-readFormula' (x:xs) | member x "pqrst" = Just ((Var x), xs)
-                    | x == 'N' = Just ((Not     phi),   r)
-                    | x == 'O' = Just ((Or      phi psi), r')
-                    | x == 'A' = Just ((And     phi psi), r')
-                    | x == 'I' = Just ((Implies phi psi), r')
+readFormula' [x]    = Just (Var x, [])
+readFormula' (x:xs) | x `elem` "pqrst" = Just (Var x, xs)
+                    | x == 'N' = Just (Not     phi,  r)
+                    | x == 'O' = Just (Or      phi psi, r')
+                    | x == 'A' = Just (And     phi psi, r')
+                    | x == 'I' = Just (Implies phi psi, r')
                     | otherwise = Nothing
     where Just (phi, r)  = readFormula' xs
           Just (psi, r') = readFormula' r
-          member x     = (not . null . filter (==x))
+
 
 instance Show DerivationTree where
     show = showTree
 
 showTree :: DerivationTree -> String
-showTree node = wrapProoftree $ reverseLines $ showTree' node
+showTree = wrapProoftree . reverseLines . showTree'
     where showTree' node =
               case node of
                 (Leaf (gamma,delta)) ->
                     [ax $ showSequent (gamma,delta)]
                 (Alpha (gamma,delta) l tree) ->
-                    (label l $ un $ showSequent (gamma,delta)) : showTree' tree
+                    label l (un $ showSequent (gamma, delta)) : showTree' tree
                 (Beta  (gamma,delta) l tree1 tree2) ->
-                    (label l $ bi $ showSequent (gamma,delta)) :
-                        (showTree' tree1 ++ showTree' tree2)
+                    label l (bi $ showSequent (gamma,delta)) : showTree' tree1 ++ showTree' tree2
+
           ax s = "\\AxiomC{$"     ++ s ++ "$}"
           un s = "\\UnaryInfC{$"  ++ s ++ "$}"
           bi s = "\\BinaryInfC{$" ++ s ++ "$}"
-          label l = ((++) $ "\\RightLabel{\\scriptsize{" ++ l ++ "}}\n")
+          label l = (++) $ "\\RightLabel{\\scriptsize{" ++ l ++ "}}\n"
           reverseLines    = unlines . reverse
           wrapProoftree p = "\\begin{prooftree}\n" ++ p ++ "\\end{prooftree}"
 
+main :: IO ()
 main = do
   args <- getArgs
   case args of
